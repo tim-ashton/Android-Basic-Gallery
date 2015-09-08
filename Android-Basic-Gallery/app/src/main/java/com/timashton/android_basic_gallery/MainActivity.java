@@ -24,13 +24,9 @@ public class MainActivity extends Activity
         implements ThumbnailAsyncTask.ThumbnailTaskCallbacks, PhotoAdapter.PhotoAdapterCallbacks {
 
     private static final String TAG = MainActivity.class.getName();
-
-    // TODO: Handle config changes as per docs
-    // TODO: http://developer.android.com/intl/ja/training/displaying-bitmaps/cache-bitmap.html#memory-cache
     private static final int LOADER_CURSOR = 1;
 
-    //private ThumbnailCache mCache;
-    private LruCache<Long, Bitmap> mCache;
+    private LruCache <Long, Bitmap> mMemoryCache;
     private PhotoAdapter mAdapter;
     private GridView mGridView;
 
@@ -46,21 +42,31 @@ public class MainActivity extends Activity
         // Use 1/8th of the available memory for this memory cache.
         final int cacheSize = maxMemory / 8;
 
-        // Create a cache
-        mCache = new LruCache<Long, Bitmap>(cacheSize) {
-            @Override
-            protected int sizeOf(Long key, Bitmap bitmap) {
-                // The cache size will be measured in kilobytes rather than
-                // number of items.
-                return bitmap.getByteCount() / 1024;
-            }
-        };
+        // Get the existing or a new fragment
+        MemoryCacheRetainFragment retainFragment =
+                MemoryCacheRetainFragment.findOrCreateRetainFragment(getFragmentManager());
+
+        // Get any existing cache
+        mMemoryCache = retainFragment.getMemoryCache();
+
+        // Create and assign a new cache to the retain fragment if none exists
+        if (mMemoryCache == null) {
+            mMemoryCache = new LruCache<Long, Bitmap>(cacheSize) {
+                @Override
+                protected int sizeOf(Long key, Bitmap bitmap) {
+                    // The cache size will be measured in kilobytes rather than
+                    // number of items.
+                    return bitmap.getByteCount() / 1024;
+                }
+            };
+            retainFragment.setMemoryCache(mMemoryCache);
+        }
+
+
 
 
         mAdapter = new PhotoAdapter(this);
-
         mGridView = (GridView) findViewById(android.R.id.list);
-        //mGridView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
         mGridView.setAdapter(mAdapter);
 
         mGridView.setRecyclerListener(new AbsListView.RecyclerListener() {
@@ -97,13 +103,13 @@ public class MainActivity extends Activity
             // Nearing middle of list of cached background apps; evict our
             // entire thumbnail cache
             Log.v(TAG, "evicting entire thumbnail cache");
-            mCache.evictAll();
+            mMemoryCache.evictAll();
 
         } else if (level >= TRIM_MEMORY_BACKGROUND) { // 40
             // Entering list of cached background apps; evict oldest half of our
             // thumbnail cache
             Log.v(TAG, "evicting oldest half of thumbnail cache");
-            mCache.trimToSize(mCache.size() / 2);
+            mMemoryCache.trimToSize(mMemoryCache.size() / 2);
         }
     }
 
@@ -156,7 +162,7 @@ public class MainActivity extends Activity
         }
 
         if (getBitmapFromMemCache(key) == null) {
-            mCache.put(key, bitmap);
+            mMemoryCache.put(key, bitmap);
         }
     }
 
@@ -169,7 +175,7 @@ public class MainActivity extends Activity
             Log.d(TAG, "getBitmapFromMemCache() Key:" + key);
         }
 
-        return mCache.get(key);
+        return mMemoryCache.get(key);
     }
 
 

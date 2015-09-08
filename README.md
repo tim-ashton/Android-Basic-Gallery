@@ -4,4 +4,4 @@ Android Basic Galler is a simple but functional photo gallery that uses a Cursor
 
 I have taken the base implementation from this presentation by Jeff Sharkey "Doing More with Less" although it is has been substantially modified from what is in the presentation.
 
-The LRU cache used in this gallery is the cache introduced in API 17 so a custom one (as per the presentation) is no longer required. I have added a retained fragment to keep the LRU cache alive across configuration changes.
+The LRU cache used in this gallery is the cache introduced in API 17 so a custom one (as per the presentation) is no longer required. I have added a retaine(d) fragment to the activity to keep the LRU cache alive across configuration changes.
